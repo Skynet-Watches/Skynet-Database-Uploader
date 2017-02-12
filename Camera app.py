@@ -20,32 +20,32 @@ class simpleapp_tk(threading.Thread):
 		# Input label
 		self.first_name_label = Tkinter.Label(self.root, text="First Name:",
 											font=("Courier", 30))
-		self.first_name_label.grid(row=1, column=0, sticky='w',
+		self.first_name_label.grid(row=0, column=1, sticky='w',
 									columnspan=2)
 		self.first_name_entry = Tkinter.Entry(self.root, font=("Courier", 20))
-		self.first_name_entry.grid(row=2, column=0, sticky='wens', columnspan=2)
+		self.first_name_entry.grid(row=1, column=1, sticky='wens', columnspan=2)
 		self.last_name_label = Tkinter.Label(self.root, text="First Name:",
 											  font=("Courier", 30))
-		self.last_name_label.grid(row=3, column=0, sticky='w', columnspan=2)
+		self.last_name_label.grid(row=2, column=1, sticky='w', columnspan=2)
 		self.last_name_entry = Tkinter.Entry(self.root, font=("Courier", 20))
-		self.last_name_entry.grid(row=4, column=0, sticky='wens', columnspan=2)
+		self.last_name_entry.grid(row=3, column=1, sticky='wens', columnspan=2)
 
 		# Entry button
 		self.entry_buttion = Tkinter.Button(self.root, text="Capture",
 										font=("Courier", 30),
 										command=self.capture_image)
-		self.entry_buttion.grid(row=5, column=0, sticky='wens')
+		self.entry_buttion.grid(row=4, column=1, sticky='wens')
 
 		self.submit_buttion = Tkinter.Button(self.root, text="Submit",
 										font=("Courier", 30),
 										state='disabled',
 										command=self.submit)
-		self.submit_buttion.grid(row=5, column=1, sticky='wens')
+		self.submit_buttion.grid(row=4, column=2, sticky='wens')
 
 		self.resume_buttion = Tkinter.Button(self.root, text="Reset",
 										 font=("Courier", 30),
 										 command=self.reset)
-		self.resume_buttion.grid(row=6, column=0, sticky='wens', columnspan=2)
+		self.resume_buttion.grid(row=5, column=1, sticky='wens', columnspan=2)
 
 		self.markup = None
 		self.submit_frame = None
@@ -99,7 +99,7 @@ class simpleapp_tk(threading.Thread):
 		if self.Cam_frame is None:
 			self.Cam_frame = Tkinter.Label(image=frame)
 			self.Cam_frame.image = frame
-			self.Cam_frame.grid(row=0, column=0, columnspan=2)
+			self.Cam_frame.grid(row=0, column=0, rowspan=6)
 		else:
 			self.Cam_frame.configure(image=frame)
 			self.Cam_frame.image = frame

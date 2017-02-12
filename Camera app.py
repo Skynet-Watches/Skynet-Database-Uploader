@@ -74,7 +74,11 @@ class simpleapp_tk(threading.Thread):
 		frame = cv2.imencode('.jpg', rawframe)[1].tostring()
 		self.submit_frame = frame
 		id = self.facedb.identify_face(frame)
-		print json.dumps(id, indent=4)
+		if id[1] is not None:
+			print "Found {} {}".format(id[1]["PersonData"]["First Name"], id[1]["PersonData"]["Last Name"])
+		elif id[0] is None:
+				print "No one found!"
+				return
 		rawframe = self.facedb.markup_image(rawframe, id[0], rawCV=True, id=True)
 		rawframe = cv2.cvtColor(rawframe, cv2.COLOR_BGR2RGB)
 		frame = Image.fromarray(rawframe)

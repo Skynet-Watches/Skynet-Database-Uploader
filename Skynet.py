@@ -145,20 +145,26 @@ class FaceDatabase:
 		return {'FaceID': faceid, 'FaceData': facedata}
 
 	def identify_face(self, image_data, match=.7):
-		faces = self.rek.search_faces_by_image(
-			CollectionId=self.collection,
-			FaceMatchThreshold=match,
-			Image={
-				'Bytes': image_data
-			}
-		)
-		for item in faces['FaceMatches']:
-			ret = self.table.query(KeyConditionExpression=Key('FaceId').eq(item['Face']['FaceId']))
-			if ret['Count'] == 1:
-				query = ret['Items'][0]
+		try:
+			faces = self.rek.search_faces_by_image(
+				CollectionId=self.collection,
+				FaceMatchThreshold=match,
+				Image={
+					'Bytes': image_data
+				}
+			)
+			for item in faces['FaceMatches']:
+				ret = self.table.query(KeyConditionExpression=Key('FaceId').eq(item['Face']['FaceId']))
+				if ret['Count'] == 1:
+					query = ret['Items'][0]
+				else:
+					query = None
+			return faces['SearchedFaceBoundingBox'], query
+		except Exception, e:
+			if "There are no faces in the image. Should be at least 1" not in str(e):
+				raise
 			else:
-				query = None
-		return faces['FaceMatches'][0], query
+				return None, None
 
 	@staticmethod
 	def markup_image(image_data, facedata, crop=False, rawCV=False, id=False):
@@ -174,10 +180,10 @@ class FaceDatabase:
 		if id:
 			bounding_box = {
 				# Width, Height, left and top in pixels
-				'Width': facedata['Face']['BoundingBox']['Width'] * width,
-				'Height': facedata['Face']['BoundingBox']['Height'] * height,
-				'Top': facedata['Face']['BoundingBox']['Top'] * height,
-				'Left': facedata['Face']['BoundingBox']['Left'] * width
+				'Width': facedata['Width'] * width,
+				'Height': facedata['Height'] * height,
+				'Top': facedata['Top'] * height,
+				'Left': facedata['Left'] * width
 			}
 		else:
 			bounding_box = {

@@ -153,11 +153,12 @@ class FaceDatabase:
 					'Bytes': image_data
 				}
 			)
+			if len(faces['FaceMatches']) < 1:
+				return faces['SearchedFaceBoundingBox'], None, None
+			query = None
 			ret = self.table.query(KeyConditionExpression=Key('FaceId').eq(faces['FaceMatches'][0]['Face']['FaceId']))
-			if ret['Count'] == 1:
+			if ret['Count'] >= 1:
 				query = ret['Items'][0]
-			else:
-				query = None
 			return faces['SearchedFaceBoundingBox'], query, faces['FaceMatches'][0]['Similarity']
 		except Exception, e:
 			if "There are no faces in the image. Should be at least 1" not in str(e):

@@ -9,7 +9,7 @@ import Skynet
 import numpy as np
 import math
 import sys
-
+import os
 
 def clamp_aspect(ratio, width, height):
 	width = float(width)
@@ -78,6 +78,9 @@ class object_tail:
 	def plot_tail(self, img, col):
 		x, y, w, h = self.locs[-1]
 		cv2.rectangle(img, (x, y), (x + w, y + h), col, 2)
+		if len(self.face_data):
+			text_name = self.face_data["First Name"]+" "+self.face_data["Last Name"]
+			cv2.putText(img, text_name, (x,y+h+24), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 	
 	def rekognize(self, img, facedb, callback=None):
 		self.face_callback = callback
@@ -99,27 +102,21 @@ class object_tail:
 		t.start()
 	
 	def c_rekognize(self, result):
-		if len(result)!=2:
+		self.rek_req_active = False
+		if len(result)!=3:
 			print "Error: Bad data"
 			return False
 		if result[1] is None:
 			return False
 		self.face_id = result[1]["FaceId"]
-		self.face_data = result[1]
+		self.face_data = result[1]["PersonData"]
 		if self.face_callback is not None:
 			self.face_callback(self, result)
-		self.rek_req_active = False
 
 def t_rekognize(img, facedb, callback):
 	enc_jpeg = cv2.imencode('.jpg', img)[1].tostring()
-	try:
-		result = facedb.identify_face(enc_jpeg, 0.85)
-	except:
-		inter = open("glitch.jpg", "wb")
-		inter.write(enc_jpeg)
-		inter.close()
+	result = facedb.identify_face(enc_jpeg, 0.85)
 	callback(result)
-	exit()
 
 class simpleapp_tk:
 	def __init__(self):
@@ -129,23 +126,13 @@ class simpleapp_tk:
 		self.root.focus_set()
 		self.root.wm_iconbitmap(bitmap = "mia.ico")
 		
-		self.root.configure(background="#555")
+		self.root.configure(bg="#555")
 		self.cframe = Tkinter.Frame(self.root, bg="#555", width=200)
-		self.cframe.grid(row=0, column=0, sticky=Tkinter.NS, padx=10)
-		self.cframe.grid_propagate(0)
-		self.vframe = Tkinter.Frame(self.root, background="#222")
-		self.vframe.grid(row=0, column=1, sticky=Tkinter.NSEW)
+		self.cframe.pack(fill=Tkinter.Y, padx=10, side=Tkinter.LEFT)
+		self.cframe.pack_propagate(0)
 		
-		self.root.grid_columnconfigure(0, weight=0, minsize=10)
-		self.root.grid_columnconfigure(1, weight=1)
-		self.root.grid_rowconfigure(0, weight=1)
-		self.vframe.grid_columnconfigure(0, weight=1)
-		self.vframe.grid_columnconfigure(2, weight=1)
-		self.vframe.grid_rowconfigure(0, weight=1)
-		self.vframe.grid_rowconfigure(2, weight=1)
-		
-		self.Cam_frame = Tkinter.Label(self.vframe, bd=0)
-		self.Cam_frame.grid(row=1, column=1, sticky=Tkinter.NSEW)
+		self.vframe = Tkinter.Label(self.root, bd=0, bg='#222')
+		self.vframe.pack(fill="both", expand=True)
 		
 		self.facedb = Skynet.FaceDatabase('creds', table='skynetdb', collection='Skynet', bucket='skynetdb')
 		self.face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -161,7 +148,7 @@ class simpleapp_tk:
 				'buf_size':8,
 				'show_frame':self.show_frame
 			}
-		self.tr_lock = threading.Lock()
+		#self.tr_lock = threading.Lock()
 		self.tr_iframe = {}
 		self.tr_oframe = [None]
 		self.tracked_faces = []
@@ -195,13 +182,17 @@ class simpleapp_tk:
 				inter.rekognize(frame[:, :], self.facedb, self.pf_inter)
 				self.tracked_faces.append(inter)
 		else:
-			self.tracked_faces = [x for x in self.tracked_faces if (min([x.dist(y) for y in faces]) < 45)]
+			try:
+				self.tracked_faces = [x for x in self.tracked_faces if (min([x.dist(y) for y in faces]) < 45)]
+			except ValueError, e:
+				print e
+				print faces
+				raise
 			for tracker in self.tracked_faces:
 					tracker.counter = 0
 					index = [tracker.dist(x) for x in faces].index(min([tracker.dist(x) for x in faces]))
 					tracker.add(faces[index])
 					faces.remove(faces[index])
-					#tracker.set_camshift(frame)
 			for point in faces:
 				inter = object_tail(frame, point)
 				inter.rekognize(frame[:, :], self.facedb, self.pf_inter)
@@ -213,8 +204,11 @@ class simpleapp_tk:
 			elif not face.rek_req_active:
 				face.rekognize(frame[:, :], self.facedb, self.pf_inter)
 		for faceid in self.cfaces:
-			if not faceid in current_faceids:
-				self.cfaces[faceid]["pop_timeout"] = self.root.after(10000, self.pop_face, (faceid))
+			if not faceid in current_faceids and not self.cfaces[faceid]['hidden'] and not self.cfaces[faceid]['pop_timeout']:
+				self.cfaces[faceid]["pop_timeout"] = self.root.after(5000, self.pop_face, (faceid))
+		for faceid in current_faceids:
+			if not faceid in self.cfaces or self.cfaces[faceid]['hidden']:
+				self.push_face(faceid)
 		
 		col = 0
 		for item in self.tracked_faces:
@@ -226,8 +220,8 @@ class simpleapp_tk:
 		frame = cv2.resize(frame, size)
 		frame = Image.fromarray(frame)
 		frame = ImageTk.PhotoImage(frame)
-		self.Cam_frame.configure(image=frame)
-		self.Cam_frame.image=frame
+		self.vframe.configure(image=frame)
+		self.vframe.image=frame
 		'''
 		self.tr_lock.acquire()
 		self.tr_control['width'] = self.vframe.winfo_width()
@@ -255,61 +249,81 @@ class simpleapp_tk:
 	
 	def pf_inter(self, tail, result):
 		if len(tail.face_data) > 0:
-			self.push_face(tail.face_id)
+			self.push_face(tail.face_id, "Confidence: "+str(result[2]))
 	
-	def push_face(self, faceid):
+	def push_face(self, faceid, addtl_label=False):
 		if faceid in self.cfaces:
-			if "pop_timeout" in self.cfaces[faceid]:
+			if self.cfaces[faceid]['pop_timeout']:
 				self.root.after_cancel(self.cfaces[faceid]["pop_timeout"])
-			if "ui_frame" in self.cfaces[faceid]:
-				self.cfaces[faceid]["ui_frame"].grid(column=0, pady=12, sticky=Tkinter.EW)
-				self.cfaces[faceid]["ui_frame"].grid_columnconfigure(0, weight=1)
-				self.cfaces[faceid]["ui_frame"].grid_rowconfigure(0, weight=1)
-				self.cfaces[faceid]["ui_frame"].grid_rowconfigure(1, weight=1)
-				self.cfaces[faceid]["ui_frame"].grid_propagate(0)
-				self.cfaces[faceid]["ui_pic"].grid(row=0, column=0, sticky=Tkinter.EW)
-				self.cfaces[faceid]["ui_text"].grid(row=1, column=0, sticky=Tkinter.EW)
-				return
-		self.cfaces[faceid] = {}
-		current = self.cfaces[faceid]
-		current["db_image"], current["db_data"] = self.facedb.get_by_faceid(faceid)
-		current["ui_frame"] = Tkinter.Frame(self.cframe, bg="#444", width=200, height=200)
-		current["ui_frame"].grid(column=0, pady=12, sticky=Tkinter.EW)
-		current["ui_frame"].grid_columnconfigure(0, weight=1)
-		current["ui_frame"].grid_rowconfigure(0, weight=1)
-		current["ui_frame"].grid_rowconfigure(1, weight=1)
-		current["ui_frame"].grid_propagate(0)
+				self.cfaces[faceid]["pop_timeout"] = False
+			if self.cfaces[faceid]['ready'] and addtl_label != False:
+				self.cfaces[faceid]["ui_extra"].config(text=addtl_label)
+				self.cfaces[faceid]['addtl_label']=addtl_label
+			if self.cfaces[faceid]['hidden']:
+				self.cfaces[faceid]["ui_spacer"].pack(anchor=Tkinter.N)
+				self.cfaces[faceid]["ui_pic"].pack(anchor=Tkinter.N, fill=Tkinter.X)
+				self.cfaces[faceid]["ui_text"].pack(anchor=Tkinter.N, fill=Tkinter.X)
+				if addtl_label != False or self.cfaces[faceid]['addtl_label'] != False:
+					self.cfaces[faceid]["ui_extra"].pack(anchor=Tkinter.N, fill=Tkinter.X)
+			return
+		self.cfaces[faceid] = {'ready':False,'hidden':False, 'pop_timeout':False, 'addtl_label':False}
+		self.cfaces[faceid]["db_image"], self.cfaces[faceid]["db_data"] = self.facedb.get_by_faceid(faceid)
+		self.cfaces[faceid]["ui_spacer"] = Tkinter.Frame(self.cframe, bg="#555", width=200, height=16)
+		self.cfaces[faceid]["ui_spacer"].pack(anchor=Tkinter.N)
+		self.cfaces[faceid]["ui_spacer"].pack_propagate(0)
 		
-		current["ui_pic"] = Tkinter.Label(current["ui_frame"], bg="#444", bd=0)
-		current["ui_pic"].grid(row=0, column=0, sticky=Tkinter.EW)
-		image_data = np.fromstring(current["db_image"], dtype='uint8')
+		self.cfaces[faceid]["ui_pic"] = Tkinter.Label(self.cframe, bg="#444", bd=0)
+		self.cfaces[faceid]["ui_pic"].pack(anchor=Tkinter.N, fill=Tkinter.X)
+		image_data = np.fromstring(self.cfaces[faceid]["db_image"], dtype='uint8')
 		opencv_image = cv2.imdecode(image_data, cv2.IMREAD_UNCHANGED)
 		opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)
 		opencv_image = resize_to_height(opencv_image, 150)
 		opencv_image = centered_clamp_width(opencv_image, 200)
 		frame = Image.fromarray(opencv_image)
 		image = ImageTk.PhotoImage(frame)
-		current["ui_pic"].configure(image=image)
-		current["ui_pic"].image = image
+		self.cfaces[faceid]["ui_pic"].configure(image=image)
+		self.cfaces[faceid]["ui_pic"].image = image
 		
-		current["ui_text"] = Tkinter.Label(current["ui_frame"], font=("Trebuchet MS", 16), bg="#444", fg="#FFF")
-		current["ui_text"].grid(row=1, column=0, sticky=Tkinter.EW)
-		new_text = current["db_data"]["First Name"]+" "+current["db_data"]["Last Name"]
+		self.cfaces[faceid]["ui_text"] = Tkinter.Label(self.cframe, font=("Trebuchet MS", 16), bg="#444", fg="#FFF")
+		new_text = self.cfaces[faceid]["db_data"]["First Name"]+" "+self.cfaces[faceid]["db_data"]["Last Name"]
 		print new_text
-		current["ui_text"].config(text=new_text)
+		self.cfaces[faceid]["ui_text"].config(text=new_text)
+		self.cfaces[faceid]["ui_text"].pack(anchor=Tkinter.N, fill=Tkinter.X)
+		
+		self.cfaces[faceid]["ui_extra"] = Tkinter.Label(self.cframe, font=("Trebuchet MS", 11), bg="#444", fg="#FEFEFE")
+		extra_text = False
+		if addtl_label != False:
+			extra_text = addtl_label
+			self.cfaces[faceid]['addtl_label']=addtl_label
+		elif self.cfaces[faceid]['addtl_label'] != False:
+			extra_text = self.cfaces[faceid]['addtl_label']
+		if extra_text:
+			self.cfaces[faceid]["ui_extra"].config(text=extra_text)
+			self.cfaces[faceid]["ui_extra"].pack(anchor=Tkinter.N, fill=Tkinter.X)
+		
+		self.cfaces[faceid]['ready']=True
 	
 	def pop_face(self, faceid):
 		if not faceid in self.cfaces:
 			return
-		self.cfaces[faceid]["ui_frame"].grid_forget()
+		try:
+			self.cfaces[faceid]["ui_spacer"].pack_forget()
+			self.cfaces[faceid]["ui_pic"].pack_forget()
+			self.cfaces[faceid]["ui_text"].pack_forget()
+			self.cfaces[faceid]["ui_extra"].pack_forget()
+			self.cfaces[faceid]['hidden'] = True
+		except KeyError, e:
+			print e
+			print self.cfaces[faceid]
+			raise
 	
 	def end_it_all(self):
-		while any([face for face in self.tracked_faces if face.rek_req_active]):
+		while len([face for face in self.tracked_faces if face.rek_req_active]):
 			time.sleep(10)
-		self.root.destroy()
 		print "Bye!"
-		print sys._current_frames()
-		exit()
+		self.cap.release()
+		self.root.destroy()
+		os._exit(0)
 	
 	def run(self):
 		self.root.protocol("WM_DELETE_WINDOW", self.end_it_all)

@@ -88,6 +88,22 @@ class FaceDatabase:
 		else:
 			self.bucket = None
 
+	def get_by_faceid(self, faceid, image=True, persondata=True):
+		if image:
+			image = self.bucket.Object(faceid + ".jpg").get()['Body'].read()
+		else:
+			image = None
+		if persondata:
+			persondata = self.table.query(KeyConditionExpression=Key('FaceId').eq(faceid))
+			if len(persondata['Items']) != 0:
+				persondata = persondata['Items'][0]['PersonData']
+			else:
+				persondata = False
+		else:
+			persondata = None
+		return image, persondata
+
+
 	def dump_coll(self):
 		self.rek.delete_collection(
 			CollectionId=self.collection
@@ -195,11 +211,7 @@ class FaceDatabase:
 
 if __name__ == "__main__":
 	facedb = FaceDatabase('creds', table='skynetdb', collection='Skynet', bucket='skynetdb')
-	photo = "james.jpg"
-	with open(photo, "rb") as f:
-		photo_data = f.read()
 	try:
-		with open('out.jpg', 'wb') as f:
-			f.write(facedb.markup_image(photo_data, facedb.add_face(photo_data, {'First Name': 'Mark', 'Last Name': 'Omo'})['FaceData']))
+		pass
 	except FaceDatabase.FaceDatabaseException:
 		print "That person is already in the database!"

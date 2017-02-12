@@ -70,6 +70,8 @@ class simpleapp_tk(threading.Thread):
 		self.submit_buttion.config(state="disabled")
 
 	def reset(self):
+		self.first_name_entry.delete(0, 'end')
+		self.last_name_entry.delete(0, 'end')
 		self.markup = None
 		self.submit_buttion.config(state="disabled")
 

@@ -144,24 +144,24 @@ class FaceDatabase:
 
 		return {'FaceID': faceid, 'FaceData': facedata}
 
-	def identify_face(self, image_data):
-		faces = self.rek.index_faces(
+	def identify_face(self, image_data, match=.7):
+		faces = self.rek.search_faces_by_image(
 			CollectionId=self.collection,
+			FaceMatchThreshold=match,
 			Image={
 				'Bytes': image_data
 			}
 		)
-		query = list()
-		for item in faces['FaceRecords']:
+		for item in faces['FaceMatches']:
 			ret = self.table.query(KeyConditionExpression=Key('FaceId').eq(item['Face']['FaceId']))
 			if ret['Count'] == 1:
-				query.append(ret['Items'][0])
+				query = ret['Items'][0]
 			else:
-				query.append(None)
-		return zip(faces['FaceRecords'], query)
+				query = None
+		return faces['FaceMatches'][0], query
 
 	@staticmethod
-	def markup_image(image_data, facedata, crop=False, rawCV=False):
+	def markup_image(image_data, facedata, crop=False, rawCV=False, id=False):
 		if not rawCV:
 			image_data = np.fromstring(image_data, dtype='uint8')
 			opencv_image = cv2.imdecode(image_data, cv2.IMREAD_UNCHANGED)
@@ -171,13 +171,22 @@ class FaceDatabase:
 			print "WTF!"
 			exit()
 		height, width, channels = opencv_image.shape
-		bounding_box = {
-			# Width, Height, left and top in pixels
-			'Width': facedata['FaceDetail']['BoundingBox']['Width'] * width,
-			'Height': facedata['FaceDetail']['BoundingBox']['Height'] * height,
-			'Top': facedata['FaceDetail']['BoundingBox']['Top'] * height,
-			'Left': facedata['FaceDetail']['BoundingBox']['Left'] * width
-		}
+		if id:
+			bounding_box = {
+				# Width, Height, left and top in pixels
+				'Width': facedata['Face']['BoundingBox']['Width'] * width,
+				'Height': facedata['Face']['BoundingBox']['Height'] * height,
+				'Top': facedata['Face']['BoundingBox']['Top'] * height,
+				'Left': facedata['Face']['BoundingBox']['Left'] * width
+			}
+		else:
+			bounding_box = {
+				# Width, Height, left and top in pixels
+				'Width': facedata['FaceDetail']['BoundingBox']['Width'] * width,
+				'Height': facedata['FaceDetail']['BoundingBox']['Height'] * height,
+				'Top': facedata['FaceDetail']['BoundingBox']['Top'] * height,
+				'Left': facedata['FaceDetail']['BoundingBox']['Left'] * width
+			}
 		if crop:
 			opencv_image = opencv_image[max(int(bounding_box['Top'] - bounding_box['Height']), 0):max(int(bounding_box['Top'] + bounding_box['Height'] * 2), 0),
 							max(int(bounding_box['Left'] - bounding_box['Width']), 0):max(int(bounding_box['Left'] + bounding_box['Width'] * 2), 0)]

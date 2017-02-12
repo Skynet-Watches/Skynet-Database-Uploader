@@ -47,7 +47,7 @@ class simpleapp_tk(threading.Thread):
 										command=self.reset)
 		self.resume_buttion.grid(row=5, column=1, sticky='wens', columnspan=2)
 
-		for x in range():
+		for x in range(30):
 			Tkinter.Grid.columnconfigure(self.root, x, weight=1)
 
 		for y in range(30):

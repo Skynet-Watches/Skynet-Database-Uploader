@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+facebook.json
+creds
+haarcascade_frontalface_default.xml
+
 # C extensions
 *.so
 

@@ -153,18 +153,17 @@ class FaceDatabase:
 					'Bytes': image_data
 				}
 			)
-			for item in faces['FaceMatches']:
-				ret = self.table.query(KeyConditionExpression=Key('FaceId').eq(item['Face']['FaceId']))
-				if ret['Count'] == 1:
-					query = ret['Items'][0]
-				else:
-					query = None
-			return faces['SearchedFaceBoundingBox'], query
+			ret = self.table.query(KeyConditionExpression=Key('FaceId').eq(faces['FaceMatches'][0]['Face']['FaceId']))
+			if ret['Count'] == 1:
+				query = ret['Items'][0]
+			else:
+				query = None
+			return faces['SearchedFaceBoundingBox'], query, faces['FaceMatches'][0]['Similarity']
 		except Exception, e:
 			if "There are no faces in the image. Should be at least 1" not in str(e):
 				raise
 			else:
-				return None, None
+				return None, None, None
 
 	@staticmethod
 	def markup_image(image_data, facedata, crop=False, rawCV=False, id=False):

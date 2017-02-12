@@ -1,7 +1,7 @@
 from tinydb import TinyDB , Query
 from botocore.exceptions import ClientError
 from facepy import GraphAPI
-from Main import FaceDatabase
+from Skynet import FaceDatabase
 import json
 
 with open('creds', "r") as f:
@@ -15,7 +15,7 @@ facedb = FaceDatabase('creds', table='skynetdb', collection='Skynet', bucket='sk
 query_item = Query()
 
 for person in db.all():
-	if 	'pic' not in person:
+	if 	'pic' not in person or True:
 		print "Getting data for {} ({})".format(person['name'].encode('utf-8'), person['id'].encode('utf-8'))
 		pic = graph.get('/{}/picture'.format(person['id']), type='large')
 		try:

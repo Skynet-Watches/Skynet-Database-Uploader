@@ -1,8 +1,8 @@
+from Skynet import FaceDatabase
 from PIL import Image, ImageTk
 import threading
 import Tkinter
-from Main import FaceDatabase
-import time
+import json
 import cv2
 
 class simpleapp_tk(threading.Thread):
@@ -16,7 +16,6 @@ class simpleapp_tk(threading.Thread):
 		self.Cam_frame = None
 		self.width, self.height = 800, 600
 		self.cap = cv2.VideoCapture(0)
-		print self.cap.isOpened()
 
 		# Input label
 		self.first_name_label = Tkinter.Label(self.root, text="First Name:",
@@ -43,6 +42,11 @@ class simpleapp_tk(threading.Thread):
 										command=self.submit)
 		self.submit_buttion.grid(row=5, column=1, sticky='wens')
 
+		self.resume_buttion = Tkinter.Button(self.root, text="Reset",
+										 font=("Courier", 30),
+										 command=self.reset)
+		self.resume_buttion.grid(row=6, column=0, sticky='wens', columnspan=2)
+
 		self.markup = None
 		self.submit_frame = None
 
@@ -59,13 +63,19 @@ class simpleapp_tk(threading.Thread):
 		self.markup = None
 		self.submit_buttion.config(state="disabled")
 
+	def reset(self):
+		self.markup = None
+		self.submit_buttion.config(state="disabled")
+
 	def capture_image(self):
 		_, frame = self.cap.read()
 		rawframe = cv2.flip(frame, 1)
 		old = rawframe
 		frame = cv2.imencode('.jpg', rawframe)[1].tostring()
 		self.submit_frame = frame
-		rawframe = self.facedb.markup_image(rawframe, self.facedb.identify_face(frame)[0][0], rawCV=True)
+		id = self.facedb.identify_face(frame)
+		print json.dumps(id, indent=4)
+		rawframe = self.facedb.markup_image(rawframe, id[0], rawCV=True, id=True)
 		rawframe = cv2.cvtColor(rawframe, cv2.COLOR_BGR2RGB)
 		frame = Image.fromarray(rawframe)
 		frame = ImageTk.PhotoImage(frame)

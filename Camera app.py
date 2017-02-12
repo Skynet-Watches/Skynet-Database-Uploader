@@ -24,8 +24,8 @@ class simpleapp_tk(threading.Thread):
 									columnspan=2)
 		self.first_name_entry = Tkinter.Entry(self.root, font=("Courier", 20))
 		self.first_name_entry.grid(row=1, column=1, sticky='wens', columnspan=2)
-		self.last_name_label = Tkinter.Label(self.root, text="First Name:",
-											  font=("Courier", 30))
+		self.last_name_label = Tkinter.Label(self.root, text="Last Name:",
+											font=("Courier", 30))
 		self.last_name_label.grid(row=2, column=1, sticky='w', columnspan=2)
 		self.last_name_entry = Tkinter.Entry(self.root, font=("Courier", 20))
 		self.last_name_entry.grid(row=3, column=1, sticky='wens', columnspan=2)
@@ -43,9 +43,15 @@ class simpleapp_tk(threading.Thread):
 		self.submit_buttion.grid(row=4, column=2, sticky='wens')
 
 		self.resume_buttion = Tkinter.Button(self.root, text="Reset",
-										 font=("Courier", 30),
-										 command=self.reset)
+										font=("Courier", 30),
+										command=self.reset)
 		self.resume_buttion.grid(row=5, column=1, sticky='wens', columnspan=2)
+
+		for x in range():
+			Tkinter.Grid.columnconfigure(self.root, x, weight=1)
+
+		for y in range(30):
+			Tkinter.Grid.rowconfigure(self.root, y, weight=1)
 
 		self.markup = None
 		self.submit_frame = None
@@ -56,8 +62,8 @@ class simpleapp_tk(threading.Thread):
 	def submit(self):
 		try:
 			print self.facedb.add_face(self.submit_frame,
-							{'First Name':self.first_name_entry.get(),
-							'Last Name':self.last_name_entry.get()})
+							{'First Name': self.first_name_entry.get(),
+							'Last Name': self.last_name_entry.get()})
 		except FaceDatabase.FaceDatabaseException, e:
 			print e
 		self.markup = None

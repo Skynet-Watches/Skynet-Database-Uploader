@@ -63,6 +63,7 @@ class object_tail:
 		self.face_data = {}
 		self.face_callback = None
 		self.rek_req_active = False
+		self.last_time = 0
 
 	def __eq__(self, other):
 		if other is None:
@@ -110,6 +111,7 @@ class object_tail:
 			return False
 		self.face_id = result[1]["FaceId"]
 		self.face_data = result[1]["PersonData"]
+		self.last_time = time.time()
 		if self.face_callback is not None:
 			self.face_callback(self, result)
 
@@ -201,7 +203,7 @@ class simpleapp_tk:
 		for face in self.tracked_faces:
 			if face.face_id is not None:
 				current_faceids.append(face.face_id)
-			elif not face.rek_req_active:
+			elif not face.rek_req_active and face.last_time < time.time():
 				face.rekognize(frame[:, :], self.facedb, self.pf_inter)
 		for faceid in self.cfaces:
 			if not faceid in current_faceids and not self.cfaces[faceid]['hidden'] and not self.cfaces[faceid]['pop_timeout']:
@@ -249,7 +251,7 @@ class simpleapp_tk:
 	
 	def pf_inter(self, tail, result):
 		if len(tail.face_data) > 0:
-			self.push_face(tail.face_id, "Confidence: "+str(result[2]))
+			self.push_face(tail.face_id, "Confidence: "+"{0:.2f}".format(result[2])+"%")
 	
 	def push_face(self, faceid, addtl_label=False):
 		if faceid in self.cfaces:
@@ -265,6 +267,7 @@ class simpleapp_tk:
 				self.cfaces[faceid]["ui_text"].pack(anchor=Tkinter.N, fill=Tkinter.X)
 				if addtl_label != False or self.cfaces[faceid]['addtl_label'] != False:
 					self.cfaces[faceid]["ui_extra"].pack(anchor=Tkinter.N, fill=Tkinter.X)
+				self.cfaces[faceid]['hidden'] = False
 			return
 		self.cfaces[faceid] = {'ready':False,'hidden':False, 'pop_timeout':False, 'addtl_label':False}
 		self.cfaces[faceid]["db_image"], self.cfaces[faceid]["db_data"] = self.facedb.get_by_faceid(faceid)

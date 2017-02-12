@@ -15,7 +15,7 @@ class simpleapp_tk(threading.Thread):
 		# Camera
 		self.Cam_frame = None
 		self.width, self.height = 800, 600
-		self.cap = cv2.VideoCapture(0)
+		self.cap = cv2.VideoCapture(1)
 
 		# Input label
 		self.first_name_label = Tkinter.Label(self.root, text="First Name:",

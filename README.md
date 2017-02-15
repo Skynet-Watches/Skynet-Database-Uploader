@@ -1,5 +1,5 @@
 # Skynet Watches
-![Logo](Logo.png)
+![Logo](Logo-small.png)
 
 ## Inspiration
 We were inspired to build Skynet Watches when we started looking into all the different ways people share their personal and identifying information. We recognized the possible applications in many industries, from retail to defence, and wanted to explore implementing a system to take advantage of this publically available data.

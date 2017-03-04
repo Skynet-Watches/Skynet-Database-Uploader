@@ -186,19 +186,22 @@ class simpleapp_tk:
 		else:
 			try:
 				self.tracked_faces = [x for x in self.tracked_faces if (min([x.dist(y) for y in faces]) < 45)]
+				for tracker in self.tracked_faces:
+						tracker.counter = 0
+						try:
+							index = [tracker.dist(x) for x in faces].index(min([tracker.dist(x) for x in faces]))
+							tracker.add(faces[index])
+							faces.remove(faces[index])
+						except ValueError, e:
+							print e
+							print faces
+				for point in faces:
+					inter = object_tail(frame, point)
+					inter.rekognize(frame[:, :], self.facedb, self.pf_inter)
+					self.tracked_faces.append(inter)
 			except ValueError, e:
 				print e
 				print faces
-				raise
-			for tracker in self.tracked_faces:
-					tracker.counter = 0
-					index = [tracker.dist(x) for x in faces].index(min([tracker.dist(x) for x in faces]))
-					tracker.add(faces[index])
-					faces.remove(faces[index])
-			for point in faces:
-				inter = object_tail(frame, point)
-				inter.rekognize(frame[:, :], self.facedb, self.pf_inter)
-				self.tracked_faces.append(inter)
 		current_faceids = []
 		for face in self.tracked_faces:
 			if face.face_id is not None:
